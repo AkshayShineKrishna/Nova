@@ -1,0 +1,53 @@
+/* Responsive styles for mobile and tablet */
+
+@media (max-width: 860px) {
+    .auth-root {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-left {
+        display: none;
+    }
+
+    .auth-right {
+        padding: 40px 24px;
+    }
+
+    .dashboard {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        display: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .auth-right {
+        padding: 24px 16px;
+    }
+
+    .form-card {
+        max-width: 100%;
+        padding: 0;
+    }
+
+    .brand-logo {
+        margin-bottom: 40px;
+    }
+
+    .auth-headline {
+        font-size: 32px;
+    }
+}
+
+/* Prevent horizontal overflow on all screen sizes */
+@media (max-width: 1024px) {
+    .chat-messages {
+        padding: 24px 0;
+    }
+
+    .empty-state {
+        padding: 24px 16px;
+    }
+}

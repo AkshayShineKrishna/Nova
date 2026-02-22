@@ -1,0 +1,17 @@
+[project]
+name = "nova-backend"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.13"
+dependencies = [
+    "aiomysql>=0.3.2",
+    "argon2-cffi>=25.1.0",
+    "fastapi>=0.129.0",
+    "passlib>=1.7.4",
+    "pydantic[email]>=2.12.5",
+    "python-dotenv>=1.2.1",
+    "python-jose[cryptography]>=3.5.0",
+    "sqlalchemy>=2.0.46",
+    "uuid6>=2025.0.1",
+    "uvicorn>=0.41.0",
+]
