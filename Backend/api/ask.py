@@ -21,7 +21,7 @@ from core import get_async_session
 from graph import AgentState
 from models import Users
 from repository.conversation_repository import ConversationRepository
-from schema import AskRequest, AskResponse, MessageOut, SessionOut
+from schema import AskRequest, AskResponse, MessageOut, SessionOut, RenameSessionRequest
 from security.filter import get_current_user
 from services.ask_service import AskService
 
@@ -188,6 +188,19 @@ async def get_session_messages(
         )
         for m in msgs
     ]
+
+
+# ── PATCH /ask/sessions/{session_id}  (rename) ───────────────────────────────
+@ask_route.patch("/sessions/{session_id}", response_model=SessionOut)
+async def rename_session(
+    session_id: str,
+    body: RenameSessionRequest,
+    current_user: Users = Depends(get_current_user),
+    service: AskService = Depends(get_ask_service),
+):
+    """Rename a session (must belong to current user)."""
+    session = await service.rename_session(session_id, current_user.id, body.name)
+    return SessionOut(id=session.id, name=session.name, created_at=str(session.created_at))
 
 
 # ── DELETE /ask/sessions/{session_id} ────────────────────────────────────────

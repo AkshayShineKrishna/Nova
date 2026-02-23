@@ -74,6 +74,19 @@ class AskService:
             )
         return await self.repo.get_all_messages(session_id)
 
+    async def rename_session(self, session_id: str, user_id: str, new_name: str) -> ConversationSession:
+        """Rename a session, verifying ownership."""
+        session = await self.repo.get_session(session_id, user_id)
+        if not session:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Session not found",
+            )
+        await self.repo.set_session_name(session, new_name.strip())
+        await self.db.commit()
+        await self.db.refresh(session)
+        return session
+
     async def delete_session(self, session_id: str, user_id: str) -> None:
         """Delete a session (and cascaded messages), verifying ownership."""
         session = await self.repo.get_session(session_id, user_id)

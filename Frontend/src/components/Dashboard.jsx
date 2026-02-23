@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { apiLogout, apiAskStream, apiListSessions, apiGetSession, apiDeleteSession } from "../services/api";
+import { apiLogout, apiAskStream, apiListSessions, apiGetSession, apiDeleteSession, apiRenameSession } from "../services/api";
 import { PlusIcon, LogOutIcon, SendIcon } from "./Icons";
 import { SUGGESTIONS } from "../constants";
 
@@ -10,6 +10,9 @@ export default function Dashboard({ userEmail, onLogout }) {
     const [input, setInput] = useState("");
     const [streaming, setStreaming] = useState(false);
     const [loadingSession, setLoadingSession] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [isRenaming, setIsRenaming] = useState(false);
+    const [renameValue, setRenameValue] = useState("");
     const streamControllerRef = useRef(null);
     const textareaRef = useRef(null);
     const messagesEndRef = useRef(null);
@@ -67,6 +70,26 @@ export default function Dashboard({ userEmail, onLogout }) {
         if (activeSessionId === id) {
             setActiveSessionId(null);
             setMessages([]);
+        }
+    };
+
+    const deleteActiveSession = async () => {
+        if (!activeSessionId) return;
+        await apiDeleteSession(activeSessionId).catch(() => { });
+        setSessions((s) => s.filter((x) => x.id !== activeSessionId));
+        setActiveSessionId(null);
+        setMessages([]);
+        setMenuOpen(false);
+    };
+
+    const renameActiveSession = async (newName) => {
+        if (!activeSessionId || !newName.trim()) return;
+        try {
+            const updated = await apiRenameSession(activeSessionId, newName);
+            setSessions((s) => s.map((x) => x.id === activeSessionId ? { ...x, name: updated.name } : x));
+            setIsRenaming(false);
+        } catch (err) {
+            console.error(err);
         }
     };
 
@@ -217,9 +240,49 @@ export default function Dashboard({ userEmail, onLogout }) {
                             <polyline points="6 9 12 15 18 9" />
                         </svg>
                     </div>
-                    <div style={{ fontSize: "12.5px", color: "var(--text-dim)" }}>
-                        {messages.length} message{messages.length !== 1 ? "s" : ""}
-                    </div>
+                    {activeSessionId && (
+                        <div className="chat-header-actions">
+                            <button
+                                className={`icon-btn ${menuOpen ? "active" : ""}`}
+                                onClick={() => setMenuOpen(!menuOpen)}
+                                title="Options"
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="1.5" />
+                                    <circle cx="12" cy="5" r="1.5" />
+                                    <circle cx="12" cy="19" r="1.5" />
+                                </svg>
+                            </button>
+
+                            {menuOpen && (
+                                <>
+                                    <div className="dropdown-overlay" onClick={() => setMenuOpen(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99 }} />
+                                    <div className="dropdown-menu">
+                                        <button
+                                            className="dropdown-item"
+                                            onClick={() => {
+                                                setMenuOpen(false);
+                                                const currentSess = sessions.find(s => s.id === activeSessionId);
+                                                setRenameValue(currentSess?.name || "");
+                                                setIsRenaming(true);
+                                            }}
+                                        >
+                                            Rename
+                                        </button>
+                                        <button
+                                            className="dropdown-item text-danger"
+                                            onClick={() => {
+                                                setMenuOpen(false);
+                                                deleteActiveSession();
+                                            }}
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
                 </header>
 
                 <div className="chat-messages">
@@ -308,6 +371,29 @@ export default function Dashboard({ userEmail, onLogout }) {
                     <div className="input-hint">Nova can make mistakes. Verify important information.</div>
                 </div>
             </main>
+
+            {/* Rename Modal */}
+            {isRenaming && (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <h3>Rename Conversation</h3>
+                        <input
+                            autoFocus
+                            className="modal-input"
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") renameActiveSession(renameValue);
+                                if (e.key === "Escape") setIsRenaming(false);
+                            }}
+                        />
+                        <div className="modal-actions">
+                            <button className="btn-secondary" onClick={() => setIsRenaming(false)}>Cancel</button>
+                            <button className="btn-primary" onClick={() => renameActiveSession(renameValue)}>Save</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

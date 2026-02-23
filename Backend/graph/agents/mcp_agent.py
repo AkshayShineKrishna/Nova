@@ -44,7 +44,7 @@ async def mcp_node(state: AgentState) -> AgentState:
                             "IMPORTANT RULES:\n"
                             "1. When the user asks for a joke (any kind), you MUST call the get_random_joke or get_joke_by_category tool. Never write a joke yourself.\n"
                             "2. For math, always use the math tools rather than computing yourself.\n"
-                            "3. After a tool returns a result, present it naturally to the user."
+                            "3. After a tool returns a result, you MUST output the EXACT text of the joke or math result in your final response. Do not just say you got a result."
                         )
                     )
                 ]

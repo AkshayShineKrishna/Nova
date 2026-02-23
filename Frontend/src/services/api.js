@@ -199,3 +199,13 @@ export async function apiDeleteSession(sessionId) {
     if (!res.ok) throw new Error("Failed to delete session");
     return res.json();
 }
+
+export async function apiRenameSession(sessionId, name) {
+    const res = await fetchWithRefresh(`${API}/ask/sessions/${sessionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+    });
+    if (!res.ok) throw new Error("Failed to rename session");
+    return res.json(); // { id, name, created_at }
+}

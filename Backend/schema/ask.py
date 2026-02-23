@@ -23,3 +23,7 @@ class SessionOut(BaseModel):
     id: str
     name: str | None
     created_at: str
+
+
+class RenameSessionRequest(BaseModel):
+    name: str
