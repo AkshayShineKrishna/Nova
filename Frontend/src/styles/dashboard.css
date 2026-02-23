@@ -101,9 +101,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
     transition: background 0.15s, color 0.15s;
     animation: slideIn 0.3s ease both;
 }
@@ -129,6 +127,43 @@
 
 .chat-item.active .chat-item-dot {
     background: var(--accent2);
+}
+
+.chat-item-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chat-item-delete {
+    flex-shrink: 0;
+    display: none;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+    border-radius: 3px;
+    transition: color 0.15s;
+}
+
+.chat-item:hover .chat-item-delete {
+    display: flex;
+}
+
+.chat-item-delete:hover {
+    color: var(--danger);
+}
+
+.sidebar-empty {
+    padding: 12px 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    text-align: center;
 }
 
 .sidebar-bottom {

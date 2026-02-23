@@ -6,13 +6,21 @@ from starlette.middleware.cors import CORSMiddleware
 
 from api import test_route, auth_route, ask_route
 from core import engine, Base, setup_logging
+from graph import setup_tools, build_graph
 
 setup_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 1. Ensure DB tables exist
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # 2. Connect to MCP SSE servers and compile the LangGraph agent
+    tools = await setup_tools()
+    graph = await build_graph(tools)
+    app.state.graph = graph
+
     yield
 
 

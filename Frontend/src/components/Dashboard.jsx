@@ -1,72 +1,146 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { apiLogout, apiAsk } from "../services/api";
+import { apiLogout, apiAskStream, apiListSessions, apiGetSession, apiDeleteSession } from "../services/api";
 import { PlusIcon, LogOutIcon, SendIcon } from "./Icons";
-import { MOCK_CHATS, SUGGESTIONS } from "../constants";
+import { SUGGESTIONS } from "../constants";
 
 export default function Dashboard({ userEmail, onLogout }) {
-    const [activeChat, setActiveChat] = useState(null);
-    const [chats, setChats] = useState(MOCK_CHATS);
-    const [messages, setMessages] = useState([]);
+    const [activeSessionId, setActiveSessionId] = useState(null);
+    const [sessions, setSessions] = useState([]);         // [{ id, name, created_at }]
+    const [messages, setMessages] = useState([]);         // [{ role: "user"|"ai", text }]
     const [input, setInput] = useState("");
-    const [typing, setTyping] = useState(false);
+    const [streaming, setStreaming] = useState(false);
+    const [loadingSession, setLoadingSession] = useState(false);
+    const streamControllerRef = useRef(null);
     const textareaRef = useRef(null);
     const messagesEndRef = useRef(null);
 
     const initials = userEmail ? userEmail[0].toUpperCase() : "U";
 
+    // ── Auto-scroll ───────────────────────────────────────────────────────────
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, typing]);
+    }, [messages, streaming]);
 
+    // ── Load sessions on mount ────────────────────────────────────────────────
+    useEffect(() => {
+        apiListSessions()
+            .then(setSessions)
+            .catch(() => { });
+    }, []);
+
+    // ── Handlers ──────────────────────────────────────────────────────────────
     const handleLogout = async () => {
         await apiLogout().catch(() => { });
         onLogout();
     };
 
     const newChat = () => {
-        setActiveChat(null);
+        streamControllerRef.current?.abort();
+        setActiveSessionId(null);
         setMessages([]);
     };
 
-    const openChat = (id) => {
-        setActiveChat(id);
+    const openSession = async (id) => {
+        if (id === activeSessionId) return;
+        streamControllerRef.current?.abort();
+        setActiveSessionId(id);
         setMessages([]);
+        setLoadingSession(true);
+        try {
+            const msgs = await apiGetSession(id);
+            setMessages(msgs.map((m) => ({
+                role: m.role === "human" ? "user" : "ai",
+                text: m.content,
+                source: m.source ?? null,
+            })));
+        } catch {
+            setMessages([{ role: "ai", text: "Failed to load conversation." }]);
+        } finally {
+            setLoadingSession(false);
+        }
     };
 
+    const deleteSession = async (e, id) => {
+        e.stopPropagation();
+        await apiDeleteSession(id).catch(() => { });
+        setSessions((s) => s.filter((x) => x.id !== id));
+        if (activeSessionId === id) {
+            setActiveSessionId(null);
+            setMessages([]);
+        }
+    };
+
+    // ── Send (SSE stream) ─────────────────────────────────────────────────────
     const send = useCallback(
         async (text) => {
             const trimmed = (text || input).trim();
-            if (!trimmed) return;
+            if (!trimmed || streaming) return;
             setInput("");
+            if (textareaRef.current) textareaRef.current.style.height = "auto";
 
-            if (textareaRef.current) {
-                textareaRef.current.style.height = "auto";
-            }
+            // Optimistically add the user message
+            setMessages((m) => [...m, { role: "user", text: trimmed }]);
+            setStreaming(true);
 
-            if (!activeChat) {
-                const newId = Date.now();
-                const newChatItem = { id: newId, title: trimmed.slice(0, 40) };
-                setChats((c) => [newChatItem, ...c]);
-                setActiveChat(newId);
-            }
+            let resolvedSessionId = activeSessionId;
+            // Placeholder for the streaming AI message
+            setMessages((m) => [...m, { role: "ai", text: "", source: null }]);
 
-            const userMsg = { role: "user", text: trimmed };
-            setMessages((m) => [...m, userMsg]);
-            setTyping(true);
+            const controller = apiAskStream(trimmed, resolvedSessionId, {
+                onSession: (sid, sname) => {
+                    resolvedSessionId = sid;
+                    setActiveSessionId(sid);
+                    // Add or update session in sidebar
+                    setSessions((prev) => {
+                        const exists = prev.find((s) => s.id === sid);
+                        if (exists) return prev;
+                        return [{ id: sid, name: sname, created_at: new Date().toISOString() }, ...prev];
+                    });
+                },
+                onToken: (token) => {
+                    setMessages((m) => {
+                        const copy = [...m];
+                        const last = copy[copy.length - 1];
+                        if (last?.role === "ai") {
+                            copy[copy.length - 1] = { ...last, text: last.text + token };
+                        }
+                        return copy;
+                    });
+                },
+                onSource: (src) => {
+                    setMessages((m) => {
+                        const copy = [...m];
+                        const last = copy[copy.length - 1];
+                        if (last?.role === "ai") {
+                            copy[copy.length - 1] = { ...last, source: src };
+                        }
+                        return copy;
+                    });
+                },
+                onDone: () => {
+                    setStreaming(false);
+                    // Refresh session name (title may have been generated)
+                    apiListSessions()
+                        .then(setSessions)
+                        .catch(() => { });
+                },
+                onError: (err) => {
+                    setStreaming(false);
+                    if (err === "session_expired") return; // global handler fires
+                    setMessages((m) => {
+                        const copy = [...m];
+                        const last = copy[copy.length - 1];
+                        if (last?.role === "ai" && last.text === "") {
+                            copy[copy.length - 1] = { role: "ai", text: "Something went wrong. Please try again." };
+                        }
+                        return copy;
+                    });
+                },
+            });
 
-            try {
-                const data = await apiAsk(trimmed);
-                setMessages((m) => [...m, { role: "ai", text: data.answer }]);
-            } catch {
-                setMessages((m) => [
-                    ...m,
-                    { role: "ai", text: "Something went wrong. Please try again." },
-                ]);
-            } finally {
-                setTyping(false);
-            }
+            streamControllerRef.current = controller;
         },
-        [input, activeChat]
+        [input, activeSessionId, streaming]
     );
 
     const handleKey = (e) => {
@@ -76,8 +150,10 @@ export default function Dashboard({ userEmail, onLogout }) {
         }
     };
 
+    // ── Render ────────────────────────────────────────────────────────────────
     return (
         <div className="dashboard">
+            {/* ── Sidebar ── */}
             <aside className="sidebar">
                 <div className="sidebar-top">
                     <div className="sidebar-brand">
@@ -93,15 +169,26 @@ export default function Dashboard({ userEmail, onLogout }) {
                 <div className="sidebar-section-label">Recents</div>
 
                 <div className="sidebar-list">
-                    {chats.map((c, i) => (
+                    {sessions.length === 0 && (
+                        <div className="sidebar-empty">No conversations yet</div>
+                    )}
+                    {sessions.map((s, i) => (
                         <div
-                            key={c.id}
-                            className={`chat-item ${activeChat === c.id ? "active" : ""}`}
+                            key={s.id}
+                            className={`chat-item ${activeSessionId === s.id ? "active" : ""}`}
                             style={{ animationDelay: `${i * 0.04}s` }}
-                            onClick={() => openChat(c.id)}
+                            onClick={() => openSession(s.id)}
+                            title={s.name || "Untitled"}
                         >
                             <span className="chat-item-dot" />
-                            {c.title}
+                            <span className="chat-item-title">{s.name || "New conversation"}</span>
+                            <button
+                                className="chat-item-delete"
+                                title="Delete"
+                                onClick={(e) => deleteSession(e, s.id)}
+                            >
+                                ×
+                            </button>
                         </div>
                     ))}
                 </div>
@@ -120,6 +207,7 @@ export default function Dashboard({ userEmail, onLogout }) {
                 </div>
             </aside>
 
+            {/* ── Chat area ── */}
             <main className="chat-area">
                 <header className="chat-header">
                     <div className="chat-model-badge">
@@ -135,7 +223,7 @@ export default function Dashboard({ userEmail, onLogout }) {
                 </header>
 
                 <div className="chat-messages">
-                    {messages.length === 0 ? (
+                    {messages.length === 0 && !loadingSession ? (
                         <div className="empty-state">
                             <div className="empty-logo">N</div>
                             <h2 className="empty-title">What can I help with?</h2>
@@ -157,6 +245,10 @@ export default function Dashboard({ userEmail, onLogout }) {
                                 ))}
                             </div>
                         </div>
+                    ) : loadingSession ? (
+                        <div className="empty-state">
+                            <div className="spinner" style={{ borderTopColor: "#c9a96e", borderColor: "rgba(201,169,110,0.2)", width: "24px", height: "24px" }} />
+                        </div>
                     ) : (
                         <div className="messages-wrap">
                             {messages.map((m, i) => (
@@ -165,24 +257,30 @@ export default function Dashboard({ userEmail, onLogout }) {
                                         {m.role === "ai" ? "N" : initials}
                                     </div>
                                     <div className="msg-content">
-                                        {m.role === "ai" && <div className="msg-name">Nova</div>}
-                                        <div className="msg-text">{m.text}</div>
-                                    </div>
-                                </div>
-                            ))}
-                            {typing && (
-                                <div className="message-row">
-                                    <div className="msg-avatar ai">N</div>
-                                    <div className="msg-content">
-                                        <div className="msg-name">Nova</div>
-                                        <div className="typing-indicator">
-                                            <span className="typing-dot" />
-                                            <span className="typing-dot" />
-                                            <span className="typing-dot" />
+                                        {m.role === "ai" && (
+                                            <div className="msg-name">
+                                                Nova
+                                                {m.source && (
+                                                    <span className={`source-badge source-badge--${m.source}`}>
+                                                        {m.source === "mcp_joke" ? "🎭 MCP Joke"
+                                                            : m.source === "mcp_math" ? "🔢 MCP Math"
+                                                                : "💬 Chat"}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                        <div className="msg-text">
+                                            {m.text || (streaming && i === messages.length - 1 ? (
+                                                <div className="typing-indicator">
+                                                    <span className="typing-dot" />
+                                                    <span className="typing-dot" />
+                                                    <span className="typing-dot" />
+                                                </div>
+                                            ) : "")}
                                         </div>
                                     </div>
                                 </div>
-                            )}
+                            ))}
                             <div ref={messagesEndRef} />
                         </div>
                     )}
@@ -203,7 +301,7 @@ export default function Dashboard({ userEmail, onLogout }) {
                             }}
                             onKeyDown={handleKey}
                         />
-                        <button className="send-btn" disabled={!input.trim() || typing} onClick={() => send()}>
+                        <button className="send-btn" disabled={!input.trim() || streaming} onClick={() => send()}>
                             <SendIcon />
                         </button>
                     </div>

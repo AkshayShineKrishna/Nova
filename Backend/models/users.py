@@ -46,3 +46,11 @@ class Users(Base):
         cascade="all, delete-orphan",
         lazy="selectin"
     )
+
+    conversation_sessions: Mapped[list["ConversationSession"]] = relationship(  # noqa: F821
+        "ConversationSession",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="noload",
+        order_by="ConversationSession.created_at"
+    )
