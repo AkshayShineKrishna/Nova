@@ -12,6 +12,7 @@ export default function Dashboard({ userEmail, onLogout }) {
     const [streaming, setStreaming] = useState(false);
     const [loadingSession, setLoadingSession] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [isRenaming, setIsRenaming] = useState(false);
     const [renameValue, setRenameValue] = useState("");
     const streamControllerRef = useRef(null);
@@ -178,13 +179,22 @@ export default function Dashboard({ userEmail, onLogout }) {
     return (
         <div className="dashboard">
             {/* ── Sidebar ── */}
-            <aside className="sidebar">
+            {mobileSidebarOpen && (
+                <div
+                    className="mobile-sidebar-overlay"
+                    onClick={() => setMobileSidebarOpen(false)}
+                />
+            )}
+            <aside className={`sidebar ${mobileSidebarOpen ? 'mobile-open' : ''}`}>
                 <div className="sidebar-top">
                     <div className="sidebar-brand">
                         <div className="sidebar-brand-mark">N</div>
                         <span className="sidebar-brand-name">Nova</span>
                     </div>
-                    <button className="new-chat-btn" onClick={newChat}>
+                    <button className="new-chat-btn" onClick={() => {
+                        newChat();
+                        setMobileSidebarOpen(false);
+                    }}>
                         <PlusIcon />
                         New conversation
                     </button>
@@ -201,7 +211,10 @@ export default function Dashboard({ userEmail, onLogout }) {
                             key={s.id}
                             className={`chat-item ${activeSessionId === s.id ? "active" : ""}`}
                             style={{ animationDelay: `${i * 0.04}s` }}
-                            onClick={() => openSession(s.id)}
+                            onClick={() => {
+                                openSession(s.id);
+                                setMobileSidebarOpen(false);
+                            }}
                             title={s.name || "Untitled"}
                         >
                             <span className="chat-item-dot" />
@@ -233,14 +246,18 @@ export default function Dashboard({ userEmail, onLogout }) {
 
             {/* ── Chat area ── */}
             <main className="chat-area">
-                <header className="chat-header">
-                    <div className="chat-model-badge">
-                        <span className="model-dot" />
-                        Nova 1.5
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="6 9 12 15 18 9" />
+                <header className={`chat-header ${!activeSessionId ? "empty" : ""}`}>
+                    <button
+                        className="mobile-menu-btn"
+                        onClick={() => setMobileSidebarOpen(true)}
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="3" y1="12" x2="21" y2="12" />
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <line x1="3" y1="18" x2="21" y2="18" />
                         </svg>
-                    </div>
+                    </button>
+                    <div style={{ flex: 1 }} />
                     {activeSessionId && (
                         <div className="chat-header-actions">
                             <button

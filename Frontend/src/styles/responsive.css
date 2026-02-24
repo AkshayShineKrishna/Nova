@@ -20,6 +20,21 @@
     .sidebar {
         display: none;
     }
+
+    .sidebar.mobile-open {
+        display: flex;
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 1000;
+        width: 260px;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+    }
+
+    .mobile-menu-btn {
+        display: flex;
+    }
 }
 
 @media (max-width: 640px) {
