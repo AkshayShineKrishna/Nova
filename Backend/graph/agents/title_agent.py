@@ -7,6 +7,7 @@ title (e.g. "Circle Area Calculation") instead of "New Conversation".
 from langchain_core.prompts import ChatPromptTemplate
 
 from graph.llm import title_llm
+from graph.prompts import TITLE_AGENT_PROMPT
 
 
 async def generate_conversation_title(query: str, answer: str) -> str:
@@ -18,13 +19,7 @@ async def generate_conversation_title(query: str, answer: str) -> str:
     """
     prompt = ChatPromptTemplate.from_messages(
         [
-            (
-                "system",
-                "You are a conversation title generator. "
-                "Given the first message and reply of a conversation, "
-                "produce a short title of at most 6 words that captures the topic. "
-                "Return ONLY the title — no quotes, no punctuation at the end.",
-            ),
+            ("system", TITLE_AGENT_PROMPT),
             (
                 "human",
                 "User message: {query}\nAssistant reply: {answer}",

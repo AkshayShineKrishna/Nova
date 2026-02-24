@@ -6,6 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from graph.llm import context_llm
 from graph.state import AgentState
+from graph.prompts import CONTEXT_AGENT_PROMPT
 
 
 def context_node(state: AgentState) -> AgentState:
@@ -18,15 +19,7 @@ def context_node(state: AgentState) -> AgentState:
 
     prompt = ChatPromptTemplate.from_messages(
         [
-            (
-                "system",
-                "You are a routing classifier. "
-                "Your job is to determine if the user's latest query requires using tools (math, calculation, or numbers). "
-                "You MUST consider the recent conversation context. "
-                "If the query requires tools, return 'mcp'. "
-                "Otherwise return 'chat'. "
-                "Respond with ONLY one word: either 'mcp' or 'chat'."
-            ),
+            ("system", CONTEXT_AGENT_PROMPT),
             ("human", "Recent context:\n{history}\n\nUser query: {input}"),
         ]
     )

@@ -5,6 +5,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from graph.llm import chat_llm
 from graph.state import AgentState
+from graph.prompts import CHAT_AGENT_PROMPT
 
 
 def _history_to_messages(history: list[dict]) -> list:
@@ -21,13 +22,7 @@ async def chat_node(state: AgentState) -> AgentState:
     """Respond to the user using prior conversation as context."""
     messages = (
         [
-            SystemMessage(
-                content=(
-                    "You are Nova, an intelligent AI assistant. "
-                    "Answer the user's query helpfully and conversationally. "
-                    "Use the conversation history to maintain context."
-                )
-            )
+            SystemMessage(content=CHAT_AGENT_PROMPT)
         ]
         + _history_to_messages(state.history)
         + [HumanMessage(content=state.query)]

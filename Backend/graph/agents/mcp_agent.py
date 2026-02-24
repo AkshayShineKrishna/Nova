@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 from graph.state import AgentState
 from langgraph.constants import END
+from graph.prompts import MCP_AGENT_PROMPT
 
 # Module-level reference set by graph.build_graph()
 _mcp_llm_with_tools = None
@@ -40,15 +41,7 @@ async def mcp_node(state: AgentState) -> dict:
     if not state.messages:
         history_messages = _history_to_messages(state.history)
         messages_to_add = [
-            SystemMessage(
-                content=(
-                    "You are Nova, a smart AI assistant. "
-                    "You have tools available for math calculations. "
-                    "IMPORTANT RULES:\n"
-                    "1. For math, always use the math tools rather than computing yourself.\n"
-                    "2. After a tool returns a result, you MUST output the EXACT text of the math result in your final response. Do not just say you got a result."
-                )
-            )
+            SystemMessage(content=MCP_AGENT_PROMPT)
         ] + history_messages + [HumanMessage(content=state.query)]
 
     # Pass all existing messages + any newly constructed ones to the LLM
