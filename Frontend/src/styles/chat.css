@@ -356,4 +356,51 @@
     margin-top: 10px;
 }
 
+/* Markdown Styles inside Messages */
+.msg-text p {
+    margin: 0 0 12px 0;
+}
+
+.msg-text p:last-child {
+    margin-bottom: 0;
+}
+
+.msg-text ul,
+.msg-text ol {
+    margin: 0 0 12px 0;
+    padding-left: 24px;
+}
+
+.msg-text li {
+    margin-bottom: 6px;
+}
+
+.msg-text strong {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.msg-text pre {
+    background: var(--surface2);
+    padding: 12px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13.5px;
+    margin: 0 0 12px 0;
+    border: 1px solid var(--border);
+}
+
+.msg-text code {
+    font-family: monospace;
+    background: var(--surface2);
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.msg-text pre code {
+    background: transparent;
+    padding: 0;
+}
+
 /* Mobile responsive styles moved to responsive.css */

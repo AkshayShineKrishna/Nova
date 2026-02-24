@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { apiLogout, apiAskStream, apiListSessions, apiGetSession, apiDeleteSession, apiRenameSession } from "../services/api";
 import { PlusIcon, LogOutIcon, SendIcon } from "./Icons";
 import { SUGGESTIONS } from "../constants";
+import ReactMarkdown from "react-markdown";
 
 export default function Dashboard({ userEmail, onLogout }) {
     const [activeSessionId, setActiveSessionId] = useState(null);
@@ -333,7 +334,9 @@ export default function Dashboard({ userEmail, onLogout }) {
                                             </div>
                                         )}
                                         <div className="msg-text">
-                                            {m.text || (streaming && i === messages.length - 1 ? (
+                                            {m.text ? (
+                                                <ReactMarkdown>{m.text}</ReactMarkdown>
+                                            ) : (streaming && i === messages.length - 1 ? (
                                                 <div className="typing-indicator">
                                                     <span className="typing-dot" />
                                                     <span className="typing-dot" />
