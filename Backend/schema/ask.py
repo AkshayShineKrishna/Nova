@@ -16,6 +16,7 @@ class MessageOut(BaseModel):
     id: str
     role: str          # "human" or "assistant"
     content: str
+    source: str | None = None
     created_at: str
 
 

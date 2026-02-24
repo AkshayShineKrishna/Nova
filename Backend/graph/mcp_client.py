@@ -8,7 +8,7 @@ _tools = None
 
 async def setup_tools():
     """
-    Connect to MCP SSE servers (math @ 8001, joke @ 8002) and return the
+    Connect to MCP SSE servers (math @ 8001) and return the
     combined tool list. Result is cached; safe to call multiple times.
     """
     global _tools
@@ -19,10 +19,6 @@ async def setup_tools():
         {
             "math": {
                 "url": "http://localhost:8001/sse",
-                "transport": "sse",
-            },
-            "joke": {
-                "url": "http://localhost:8002/sse",
                 "transport": "sse",
             },
         }

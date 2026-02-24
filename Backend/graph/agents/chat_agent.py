@@ -17,7 +17,7 @@ def _history_to_messages(history: list[dict]) -> list:
     return msgs
 
 
-def chat_node(state: AgentState) -> AgentState:
+async def chat_node(state: AgentState) -> AgentState:
     """Respond to the user using prior conversation as context."""
     messages = (
         [
@@ -32,7 +32,7 @@ def chat_node(state: AgentState) -> AgentState:
         + _history_to_messages(state.history)
         + [HumanMessage(content=state.query)]
     )
-    response = chat_llm.invoke(messages)
+    response = await chat_llm.ainvoke(messages)
     return state.model_copy(
         update={"answer": response.content, "messages": [response]}
     )

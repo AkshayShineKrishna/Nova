@@ -16,6 +16,7 @@ context_llm = ChatGroq(
     model="llama-3.1-8b-instant",
     api_key=Settings.GROQ_API_KEY,
     http_client=http_client,
+    http_async_client=async_client,
     max_tokens=10,
 )
 
@@ -24,6 +25,7 @@ chat_llm = ChatGroq(
     model="llama-3.1-8b-instant",
     api_key=Settings.GROQ_API_KEY,
     http_client=http_client,
+    http_async_client=async_client,
     temperature=0.7,
 )
 
@@ -40,6 +42,7 @@ title_llm = ChatGroq(
     model="llama-3.1-8b-instant",
     api_key=Settings.GROQ_API_KEY,
     http_client=http_client,
+    http_async_client=async_client,
     max_tokens=12,
     temperature=0.3,
 )

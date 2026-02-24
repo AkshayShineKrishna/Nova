@@ -10,20 +10,28 @@ from graph.state import AgentState
 
 def context_node(state: AgentState) -> AgentState:
     """Classify the incoming query."""
+    # Get up to 4 recent messages for context
+    recent_history = state.history[-4:] if state.history else []
+    history_text = "\n".join([f"{h['role'].title()}: {h['content']}" for h in recent_history])
+    if not history_text:
+        history_text = "No prior context."
+
     prompt = ChatPromptTemplate.from_messages(
         [
             (
                 "system",
-                "You are a classifier. "
-                "If the query is about math, calculation, numbers, or jokes return 'mcp'. "
+                "You are a routing classifier. "
+                "Your job is to determine if the user's latest query requires using tools (math, calculation, or numbers). "
+                "You MUST consider the recent conversation context. "
+                "If the query requires tools, return 'mcp'. "
                 "Otherwise return 'chat'. "
-                "Respond with only one word.",
+                "Respond with ONLY one word: either 'mcp' or 'chat'."
             ),
-            ("human", "{input}"),
+            ("human", "Recent context:\n{history}\n\nUser query: {input}"),
         ]
     )
     chain = prompt | context_llm
-    response = chain.invoke({"input": state.query})
+    response = chain.invoke({"input": state.query, "history": history_text})
     intent = response.content.strip().lower()
     if intent not in ["chat", "mcp"]:
         intent = "chat"

@@ -36,11 +36,11 @@ class AskService:
         return [{"role": m.role.value, "content": m.content} for m in msgs]
 
     async def save_turn(
-        self, session_id: str, query: str, answer: str
+        self, session_id: str, query: str, answer: str, source: str | None = None
     ) -> None:
         """Persist a human + assistant message pair, then commit."""
         await self.repo.add_message(session_id, MessageRole.HUMAN, query)
-        await self.repo.add_message(session_id, MessageRole.ASSISTANT, answer)
+        await self.repo.add_message(session_id, MessageRole.ASSISTANT, answer, source=source)
         await self.db.commit()
 
     async def maybe_set_title(

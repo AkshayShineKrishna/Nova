@@ -73,10 +73,11 @@ class ConversationRepository:
         return list(result.scalars().all())
 
     async def add_message(
-        self, session_id: str, role: MessageRole, content: str
+        self, session_id: str, role: MessageRole, content: str, source: str | None = None
     ) -> None:
         self.db.add(ConversationMessage(
             session_id=session_id,
             role=role,
             content=content,
+            source=source,
         ))

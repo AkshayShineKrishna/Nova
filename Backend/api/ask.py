@@ -96,7 +96,6 @@ async def ask_stream(
     state = AgentState(query=query, history=history)
 
     # Tool name sets for source classification
-    _JOKE_TOOLS = {"get_random_joke", "get_joke_by_category", "list_joke_categories"}
     _MATH_TOOLS = {
         "add", "subtract", "multiply", "divide", "power", "modulus", "sqrt",
         "calculate_area_circle", "calculate_area_rectangle", "calculate_area_triangle",
@@ -129,9 +128,7 @@ async def ask_stream(
                             yield f"data: {json.dumps({'type': 'token', 'token': token}, ensure_ascii=False)}\n\n"
 
             # Determine response source
-            if tools_called & _JOKE_TOOLS:
-                source = "mcp_joke"
-            elif tools_called & _MATH_TOOLS:
+            if tools_called & _MATH_TOOLS:
                 source = "mcp_math"
             else:
                 source = "chat"
@@ -140,7 +137,7 @@ async def ask_stream(
             # Persist and generate title after full answer
             answer_text = "".join(full_answer)
             if answer_text:
-                await service.save_turn(session.id, query, answer_text)
+                await service.save_turn(session.id, query, answer_text, source=source)
                 await service.maybe_set_title(session, query, answer_text)
 
         except Exception as exc:
@@ -184,6 +181,7 @@ async def get_session_messages(
             id=m.id,
             role=m.role.value,
             content=m.content,
+            source=m.source,
             created_at=str(m.created_at),
         )
         for m in msgs
